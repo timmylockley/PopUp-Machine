@@ -30,9 +30,18 @@
         h2 {
             color: yellow;
         }
-        
         #harmless {
-          color: red;
+            color: red;
+        }
+        #dropZone {
+            border: 2px dashed #888;
+            padding: 20px;
+            margin: 10px;
+            color: #aaa;
+        }
+        #dropZone.dragover {
+            border-color: lime;
+            color: white;
         }
     </style>
 </head>
@@ -45,6 +54,20 @@
             <input type="text" id="message" placeholder="Enter text message">
             <br>
             <input type="text" id="imageURL" placeholder="Enter image URL (optional)">
+            <br>
+            <input type="file" id="mediaFile" accept="audio/mp3,video/mp4">
+            <br>
+            <div id="dropZone">Drag & Drop MP3 or MP4 file here</div>
+            <select id="mediaType">
+                <option value="">None</option>
+                <option value="video">Video (MP4)</option>
+                <option value="audio">Audio (MP3)</option>
+            </select>
+            <br>
+            <select id="mediaLoop">
+                <option value="loop">Loop</option>
+                <option value="once">Play Once</option>
+            </select>
             <br>
             <select id="popupCount">
                 <option value="infinite">Infinite</option>
@@ -60,34 +83,6 @@
     <div id="instructions">
         <h1>Enable Popups to Continue</h1>
         <p>To run this, you need to allow popups for this site.</p>
-
-        <h2>Chrome (Desktop)</h2>
-        <ol>
-            <li>Look at the right side of the address bar (top of Chrome).</li>
-            <li>Click the popup blocker icon.</li>
-            <li>Select "Always allow popups from this site".</li>
-        </ol>
-
-        <h2>Chrome (Android)</h2>
-        <ol>
-            <li>Tap the three dots menu.</li>
-            <li>Go to "Settings" → "Site settings" → "Pop-ups and redirects".</li>
-            <li>Allow popups.</li>
-        </ol>
-
-        <h2>Safari (iPhone/iPad)</h2>
-        <ol>
-            <li>Open the Settings app.</li>
-            <li>Scroll to Safari.</li>
-            <li>Turn off "Block Pop-ups".</li>
-        </ol>
-
-        <h2>Firefox</h2>
-        <ol>
-            <li>Look for the popup icon in the address bar.</li>
-            <li>Click it and allow popups for this site.</li>
-        </ol>
-
         <p><strong>Once popups are allowed, click anywhere on this page to continue.</strong></p>
     </div>
 
@@ -95,18 +90,19 @@
         let message = "";
         let imageURL = "";
         let count = 0;
+        let mediaBlobURL = "";
 
         function bypassPopupBlocker() {
-            for (let i = 0; i < 10; i++) {  
+            for (let i = 0; i < 10; i++) {
                 let newWindow = window.open("about:blank", "_blank");
-                if (newWindow) {
-                    newWindow.close();
-                }
+                if (newWindow) newWindow.close();
             }
         }
 
         function showPopup(content) {
-            let newWindow = window.open("", "_blank", "width=400,height=400");
+            let screenWidth = window.screen.width;
+            let screenHeight = window.screen.height;
+            let newWindow = window.open("", "_blank", `width=${screenWidth},height=${screenHeight},top=0,left=0`);
             if (newWindow) {
                 newWindow.document.write(content);
                 newWindow.document.close();
@@ -116,29 +112,35 @@
         function startPrank() {
             message = document.getElementById("message").value || "Ha Ha You Are Hacked!";
             imageURL = document.getElementById("imageURL").value;
+            let mediaType = document.getElementById("mediaType").value;
+            let mediaLoop = document.getElementById("mediaLoop").value;
             let countValue = document.getElementById("popupCount").value;
 
             count = (countValue === "infinite") ? Infinity : parseInt(countValue);
 
-            // Hide setup, show instructions
             document.getElementById("setupUI").style.display = "none";
             document.getElementById("instructions").style.display = "block";
 
-            // Silently try to allow popups
             bypassPopupBlocker();
 
-            // Wait for click after enabling popups
             document.body.addEventListener("click", () => {
-                let popupContent;
+                let popupContent = `<html><body style='background:black;margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;'>`;
+
                 if (imageURL) {
-                    popupContent = `<html><body style='background:black;display:flex;justify-content:center;align-items:center;height:100%;'>
-                                    <img src="${imageURL}" style="max-width:100%;max-height:100%;">
-                                    </body></html>`;
+                    popupContent += `<img src="${imageURL}" style="max-width:100%;max-height:50%;">`;
                 } else {
-                    popupContent = `<html><body style='background:black;color:red;font-size:30px;text-align:center;'>
-                                    <h1>${message}</h1>
-                                    </body></html>`;
+                    popupContent += `<h1 style='color:red;font-size:30px;'>${message}</h1>`;
                 }
+
+                if (mediaBlobURL && mediaType) {
+                    if (mediaType === "video") {
+                        popupContent += `<video src="${mediaBlobURL}" ${mediaLoop === "loop" ? "loop" : ""} autoplay style="max-width:100%;max-height:50%;"></video>`;
+                    } else if (mediaType === "audio") {
+                        popupContent += `<audio src="${mediaBlobURL}" ${mediaLoop === "loop" ? "loop" : ""} autoplay></audio>`;
+                    }
+                }
+
+                popupContent += `</body></html>`;
 
                 let i = 0;
                 let spamInterval = setInterval(() => {
@@ -151,6 +153,36 @@
                 }, 200);
             }, { once: true });
         }
+
+        // Handle file upload
+        document.getElementById("mediaFile").addEventListener("change", function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                mediaBlobURL = URL.createObjectURL(file);
+            }
+        });
+
+        // Handle drag and drop
+        const dropZone = document.getElementById("dropZone");
+
+        dropZone.addEventListener("dragover", function(event) {
+            event.preventDefault();
+            dropZone.classList.add("dragover");
+        });
+
+        dropZone.addEventListener("dragleave", function() {
+            dropZone.classList.remove("dragover");
+        });
+
+        dropZone.addEventListener("drop", function(event) {
+            event.preventDefault();
+            dropZone.classList.remove("dragover");
+            const file = event.dataTransfer.files[0];
+            if (file && (file.type === "audio/mp3" || file.type === "video/mp4")) {
+                mediaBlobURL = URL.createObjectURL(file);
+                document.getElementById("mediaType").value = file.type.startsWith("video") ? "video" : "audio";
+            }
+        });
     </script>
 </body>
 </html>
